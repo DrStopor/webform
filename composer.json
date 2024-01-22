@@ -1,0 +1,33 @@
+{
+    "name": "dmitrijrudov/webform",
+    "description": "test example with ami-core",
+    "license": "GNU",
+    "authors": [
+        {
+            "name": "d.rudov",
+            "email": "rds18@mail.ru"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "app\\": "/app",
+            "public\\": "/public"
+        }
+    },
+    "require": {
+        "php": "^8.0",
+        "imy/core": "dev-main"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-latest"
+    },
+    "config" : {
+        "platform-check": false
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/feastker/imy-core.git"
+        }
+    ]
+}
