@@ -43,15 +43,44 @@ function handlerSendButton(event) {
   const form = $(event.target).parents("form");
   form.find("input,textarea").each(function (_, obj) {
     const jObj = $(obj);
+    const fieldName = jObj.prop("id");
+    const fieldValue = jObj.val();
+    const isRequired = jObj.prop("required");
+    const minLength = jObj.prop("minlength") || jObj.prop("minLength");
+    const maxLength = jObj.prop("maxlength") || jObj.prop("maxLength");
+    let error = [];
+
+    if (isRequired && fieldValue === "") {
+        error.push("Поле обязательно для заполнения");
+    }
+    if (minLength !== undefined && fieldValue.length < minLength) {
+        error.push(`Минимальная длина поля ${minLength} символов`);
+    }
+    if (maxLength !== undefined && fieldValue.length > maxLength) {
+        error.push(`Максимальная длина поля ${maxLength} символов`);
+    }
+    console.log(error);
+    if (error.length > 0) {
+        jObj.addClass("is-invalid");
+        jObj.removeClass("is-valid");
+        let html = "";
+        for (let i = 0; i < error.length; i++) {
+            html += `<div class="invalid-feedback">${error[i]}</div>`;
+        }
+        jObj.parent().find(".invalid-feedback").remove();
+        jObj.after(html);
+        return;
+    }
+
     ajaxObject.data[jObj.prop("id")] = jObj.val();
   });
 
   $.ajax(ajaxObject)
-    /** @param {{error: string, data: {saved: boolean, message: string}}} data */
+    /** @param {{error: {message: string, code: number}, data: {saved: boolean, message: string}}} data */
     .done(function (data) {
       const notificationBlock = $(".container .notification");
       if (data.error !== "") {
-        let html = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
+        let html = `<div class="alert alert-danger" role="alert">${data.error.message}</div>`;
         notificationBlock.html(html);
         notificationBlock.fadeIn({ duration: 100 });
         clearBlockAfterTimeout(notificationBlock);

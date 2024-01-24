@@ -16,7 +16,8 @@
     },
     "require": {
         "php": ">=7.4",
-        "imy/core": "dev-main"
+        "imy/core": "dev-main",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "roave/security-advisories": "dev-latest"

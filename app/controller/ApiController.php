@@ -10,6 +10,14 @@ use Imy\Core\Tools;
  */
 class ApiController extends Controller
 {
+    /** @var int Минимальная длина имени */
+    private const MIN_NAME_LENGTH = 2;
+    /** @var int Максимальная длина имени */
+    private const MAX_NAME_LENGTH = 128;
+    /** @var int Минимальная длина сообщения */
+    private const MIN_MESSAGE_LENGTH = 2;
+    /** @var int Максимальная длина сообщения */
+    private const MAX_MESSAGE_LENGTH = 2056;
     /** @var int $messagesPerPage Количество сообщений на одной странице */
     private int $messagesPerPage = 10;
 
@@ -66,6 +74,26 @@ class ApiController extends Controller
                         . (empty($userName) ? 'Имя ' : '')
                         . (empty($message) ? 'Отзыв' : '')
                     ),
+                    'code' => '400'
+                ]
+            ]);
+        }
+
+        if (mb_strlen($userName) < self::MIN_NAME_LENGTH || mb_strlen($userName) > self::MAX_NAME_LENGTH) {
+            $this->response([
+                'code' => 200,
+                'error' => [
+                    'message' => 'Неверная длина имени',
+                    'code' => '400'
+                ]
+            ]);
+        }
+
+        if (mb_strlen($message) < self::MIN_MESSAGE_LENGTH || mb_strlen($message) > self::MAX_MESSAGE_LENGTH) {
+            $this->response([
+                'code' => 200,
+                'error' => [
+                    'message' => 'Неверная длина сообщения',
                     'code' => '400'
                 ]
             ]);
