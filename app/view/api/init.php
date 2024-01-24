@@ -42,24 +42,11 @@
         <div class="col-8">
             <div class="content">
                 <div class="messages">
-                    <div class="message" id="message_1">
-                        <div class="header__message">an1</div>
-                        <div class="body__message">
-                            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Blanditiis excepturi laboriosam
-                            laborum nisi quam quod repudiandae saepe temporibus voluptatum! Excepturi iure labore magni,
-                            molestiae non omnis recusandae totam veniam vitae.
-                        </div>
-                        <div class="time__message">22.01.2024 11:51</div>
-                    </div>
-                    <div class="message" id="message_2">
-                        <div class="header__message">an2</div>
-                        <div class="body__message">
-                            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Atque cupiditate doloremque earum,
-                            eum excepturi ipsa labore quo sunt suscipit vitae! Aspernatur,
-                            at deleniti doloribus eius incidunt numquam optio quae quia.
-                        </div>
-                        <div class="time__message">22.01.2024 14:01</div>
-                    </div>
+                    <p>
+                        <h3>
+                        Сообщений нет
+                        </h3>
+                    </p>
                 </div>
                 <div class="pagination-container"></div>
             </div>

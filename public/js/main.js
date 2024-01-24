@@ -256,8 +256,10 @@ function renderMessagesWithPagination(element) {
       const pagination = data.data.pagination;
       if (Object.keys(pagination).length > 0) {
         const paginationBlock = $(".container .content .pagination");
-        paginationHtml = `<nav aria-label="Page navigation example">
-    <ul class="pagination">`;
+        paginationHtml = `
+<nav aria-label="paginator">
+<ul class="pagination pagination-md">
+`;
         for (let i = 1; i <= pagination.total; i++) {
           if (i === pagination.page) {
             paginationHtml += `<li class="page-item active" aria-current="page">
@@ -334,7 +336,7 @@ function initRenderMessagesWithPagination() {
         const paginationBlock = $(".container .content .pagination-container");
         paginationHtml = `
 <nav aria-label="paginator">
-<ul class="pagination pagination-sm">
+<ul class="pagination pagination-md">
 `;
         for (let i = 1; i <= pagination.total; i++) {
           if (i === pagination.page) {
