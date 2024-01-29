@@ -37,21 +37,15 @@ class ApiController extends Controller
     {
         if (!CsrfGenerator::check($this->request->post('_token'))) {
             $this->response([
-                'code' => 200,
-                'error' => [
-                    'message' => 'Invalid token',
-                    'code' => '403'
-                ]
+                'code' => 403,
+                'error' => 'Invalid token'
             ]);
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->response([
-                'code' => 200,
-                'error' => [
-                    'message' => 'Method not allowed',
-                    'code' => '405'
-                ]
+                'code' => 405,
+                'error' => 'Method not allowed'
             ]);
         }
     }
@@ -67,24 +61,26 @@ class ApiController extends Controller
 
         if (empty($userName) || empty($message)) {
             $this->response([
-                'code' => 200,
+                'code' => 400,
                 'error' => [
-                    'message' => trim(
-                        'Не заполнены обязательные поля: '
-                        . (empty($userName) ? 'Имя ' : '')
-                        . (empty($message) ? 'Отзыв' : '')
-                    ),
-                    'code' => '400'
+                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => trim(
+                            'Не заполнены обязательные поля: '
+                            . (empty($userName) ? 'Имя ' : '')
+                            . (empty($message) ? 'Отзыв' : '')
+                        )
+                    ])
                 ]
             ]);
         }
 
         if (mb_strlen($userName) < self::MIN_NAME_LENGTH || mb_strlen($userName) > self::MAX_NAME_LENGTH) {
             $this->response([
-                'code' => 200,
+                'code' => 400,
                 'error' => [
-                    'message' => 'Неверная длина имени',
-                    'code' => '400'
+                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => 'Неверная длина имени'
+                    ])
                 ]
             ]);
         }
@@ -93,8 +89,9 @@ class ApiController extends Controller
             $this->response([
                 'code' => 200,
                 'error' => [
-                    'message' => 'Неверная длина сообщения',
-                    'code' => '400'
+                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => 'Неверная длина сообщения'
+                    ])
                 ]
             ]);
         }
@@ -113,7 +110,9 @@ class ApiController extends Controller
 
         $data = [
             'saved' => (bool)$result,
-            'message' => $result ? 'Сообщение успешно сохранено' : 'Ошибка сохранения сообщения. ' . ($entity->last_error ?? '')
+            'html' => Tools::get_include_contents(tpl('tpl/notice'), [
+                'message' => $result ? 'Сообщение успешно сохранено' : 'Ошибка сохранения сообщения'
+            ])
         ];
 
         $response = [
@@ -207,6 +206,7 @@ class ApiController extends Controller
         $cache->set('sequence', $sequence->id, 60);
 
         $response['data']['sequence'] = $sequence->id;
+        $response['data']['html'] = Tools::get_include_contents(tpl('tpl/toast'));
         $this->v = array_merge($this->v, $response);
     }
 
@@ -266,9 +266,20 @@ class ApiController extends Controller
             ];
         }, $messagesOnPage);
 
-        $response['data']['messages'] = $messagesOnPage;
-        $response['data']['pagination']['total'] = $totalPages;
+        $messagesTpl = Tools::get_include_contents(tpl('tpl/messages'), [
+            'messages' => $messagesOnPage
+        ]);
 
+        $paginationTpl = Tools::get_include_contents(tpl('tpl/pagination'), [
+            'currentPage' => (int)$page,
+            'totalPages' => (int)$totalPages
+        ]);
+        $response['data']['messages'] = $messagesTpl;
+        $response['data']['pagination'] = [
+            'page' => $page,
+            'total' => $totalPages,
+            'html' => $paginationTpl
+        ];
         $this->v += $response;
     }
 

@@ -5,7 +5,6 @@
  * Для форматирования кода использовался плагин Prettier
  */
 $(document).ready(function () {
-  //renderMessages();
   initRenderMessagesWithPagination();
   setInterval(getSequence, 60000);
 
@@ -59,7 +58,7 @@ function handlerSendButton(event) {
     if (maxLength !== undefined && fieldValue.length > maxLength) {
         error.push(`Максимальная длина поля ${maxLength} символов`);
     }
-    console.log(error);
+
     if (error.length > 0) {
         jObj.addClass("is-invalid");
         jObj.removeClass("is-valid");
@@ -75,96 +74,25 @@ function handlerSendButton(event) {
     ajaxObject.data[jObj.prop("id")] = jObj.val();
   });
 
-  $.ajax(ajaxObject)
-    /** @param {{error: {message: string, code: number}, data: {saved: boolean, message: string}}} data */
-    .done(function (data) {
-      const notificationBlock = $(".container .notification");
-      if (data.error !== "") {
-        let html = `<div class="alert alert-danger" role="alert">${data.error.message}</div>`;
-        notificationBlock.html(html);
+    $.ajax(ajaxObject)
+      .done(function (data) {
+        const notificationBlock = $(".container .notification");
+        notificationBlock.fadeOut({ duration: 100 });
+        notificationBlock.html("");
+        if (data.error !== "") {
+          notificationBlock.html(data.error.html);
+          notificationBlock.fadeIn({ duration: 100 });
+          clearBlockAfterTimeout(notificationBlock);
+          return;
+        }
+
+        notificationBlock.html(data.data.html);
         notificationBlock.fadeIn({ duration: 100 });
         clearBlockAfterTimeout(notificationBlock);
-        return;
-      }
-
-      if (data.data.saved !== true) {
-        let html = `<div class="alert alert-danger" role="alert">${data.data.message}</div>`;
-        notificationBlock.html(html);
-        notificationBlock.fadeIn({ duration: 100 });
-        clearBlockAfterTimeout(notificationBlock);
-        return;
-      }
-
-      let html = `<div class="alert alert-success" role="alert">${data.data.message}</div>`;
-      notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
-      clearBlockAfterTimeout(notificationBlock);
-      renderMessages();
-    })
-    .fail(function (data) {
-      const notificationBlock = $(".container .notification");
-      let html = `<div class="alert alert-warning" role="alert">${data.message}</div>`;
-      notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
-      clearBlockAfterTimeout(notificationBlock);
-    });
-}
-
-/**
- * Отрисовка всех сообщений
- * @note Не используется
- */
-function renderMessages() {
-  const ajaxObject = Object.assign({}, objDef);
-  ajaxObject.data = Object.assign({}, objDef.data);
-  ajaxObject.data.action = "getMessages";
-  $.ajax(ajaxObject)
-    /** @param {{error: string, data: {messages: [], message: string}}} data */
-    .done(function (data) {
-      const notificationBlock = $(".container .content .messages");
-      notificationBlock.fadeOut({ duration: 100 });
-      notificationBlock.html("");
-      if (data.error !== "") {
-        let html = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
-        notificationBlock.html(html);
-        notificationBlock.fadeIn({ duration: 100 });
-        clearBlockAfterTimeout(notificationBlock);
-        return;
-      }
-
-      let html = "";
-      /** @param { messages: [user_name: string, message: string, date: string, id: number] } messages */
-      const messages = data.data.messages;
-      if (messages.length === 0) {
-        html = `<div class="alert alert-warning" role="alert">Сообщений нет</div>`;
-        notificationBlock.html(html);
-        notificationBlock.fadeIn({ duration: 100 });
-        clearBlockAfterTimeout(notificationBlock);
-        return;
-      }
-
-      for (let i = 0; i < messages.length; i++) {
-        html += `
-<div class="row g-0 border rounded overflow-hidden flex-md-row mb-4 shadow-sm h-md-250 position-relative" id="message_${messages[i].id}">
-    <div class="col p-4 d-flex flex-column position-static">
-        <h3 class="mb-0">${messages[i].user_name}</h3>
-        <div class="mb-1 text-muted">Отправлено: ${messages[i].date}</div>
-        <p class="mb-auto">${messages[i].message}</p>
-    </div>
-</div>
-`;
-      }
-
-      notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
-    })
-    .fail(function (data) {
-      const notificationBlock = $(".container .notification");
-      let html = `<div class="alert alert-warning" role="alert">${data.message}</div>`;
-      notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
-      clearBlockAfterTimeout(notificationBlock);
-    });
+      })
+      .error(function (data) {
+        console.warn(data);
+      });
 }
 
 /**
@@ -198,7 +126,10 @@ function getSequence() {
         data.data.sequence > globalLastSequence
       ) {
         globalLastSequence = data.data.sequence;
-        renderToast();
+        const toastContainer = $(".toast-container");
+        toastContainer.html(data.data.html);
+        $(".toast").show(100);
+        clearBlockAfterTimeout(toastContainer, 3000, 1000);
       }
     })
     .fail(function (data) {
@@ -239,7 +170,7 @@ function renderMessagesWithPagination(element) {
   ajaxObject.data.action = "getMessagesWithPagination";
   ajaxObject.data.page = currentPage;
   $.ajax(ajaxObject)
-    /** @param {{error: string, data: {messages: [], pagination: {page: number, total: number}}}} data */
+    /** @param {{error: string, data: {messages: string, pagination: {page: number, total: number, html: string}}}} data */
     .done(function (data) {
       const notificationBlock = $(".container .content .notification");
       notificationBlock.fadeOut({ duration: 100 });
@@ -252,56 +183,13 @@ function renderMessagesWithPagination(element) {
         return;
       }
 
-      let html = "";
-      /** @param { messages: [user_name: string, message: string, date: string, id: number] } messages */
-      const messages = data.data.messages;
-      if (messages.length === 0) {
-        html = `<div class="alert alert-warning" role="alert">Сообщений нет</div>`;
-        notificationBlock.html(html);
-        notificationBlock.fadeIn({ duration: 100 });
-        clearBlockAfterTimeout(notificationBlock);
-        return;
-      }
-
-      let htmlMessages = "";
-      for (let i = 0; i < messages.length; i++) {
-        htmlMessages += `
-<div class="row g-0 border rounded overflow-hidden flex-md-row mb-4 shadow-sm h-md-250 position-relative" id="message_${messages[i].id}">
-    <div class="col p-4 d-flex flex-column position-static">
-        <h3 class="mb-0">${messages[i].user_name}</h3>
-        <div class="mb-1 text-muted">Отправлено: ${messages[i].date}</div>
-        <p class="mb-auto">${messages[i].message}</p>
-    </div>
-</div>
-`;
-      }
       const messagesBlock = $(".container .content .messages");
       messagesBlock.fadeOut({ duration: 250 });
-      messagesBlock.html(htmlMessages);
+      messagesBlock.html(data.data.messages);
       messagesBlock.fadeIn({ duration: 250 });
 
-      let paginationHtml = "";
-      /** @param {{page: number, total: number}} pagination */
-      const pagination = data.data.pagination;
-      if (Object.keys(pagination).length > 0) {
         const paginationBlock = $(".container .content .pagination");
-        paginationHtml = `
-<nav aria-label="paginator">
-<ul class="pagination pagination-md">
-`;
-        for (let i = 1; i <= pagination.total; i++) {
-          if (i === pagination.page) {
-            paginationHtml += `<li class="page-item active" aria-current="page">
-        <span class="page-link">${i}</span>
-        </li>`;
-            continue;
-          }
-          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${i}" onclick="renderMessagesWithPagination(this)">${i}</a></li>`;
-        }
-        paginationHtml += `</ul></nav>`;
-
-        paginationBlock.html(paginationHtml);
-      }
+        paginationBlock.html(data.data.pagination.html);
     })
     .fail(function (data) {
       const notificationBlock = $(".container .notification");
@@ -334,53 +222,10 @@ function initRenderMessagesWithPagination() {
         return;
       }
 
-      let html = "";
-      /** @param { messages: [user_name: string, message: string, date: string, id: number] } messages */
-      const messages = data.data.messages;
-      if (messages.length === 0) {
-        html = `<div class="alert alert-warning" role="alert">Сообщений нет</div>`;
-        messagesBlock.html(html);
-        messagesBlock.fadeIn({ duration: 100 });
-        clearBlockAfterTimeout(messagesBlock);
-        return;
-      }
-
-      for (let i = 0; i < messages.length; i++) {
-        html += `
-<div class="row g-0 border rounded overflow-hidden flex-md-row mb-4 shadow-sm h-md-250 position-relative" id="message_${messages[i].id}">
-    <div class="col p-4 d-flex flex-column position-static">
-        <h3 class="mb-0">${messages[i].user_name}</h3>
-        <div class="mb-1 text-muted">Отправлено: ${messages[i].date}</div>
-        <p class="mb-auto">${messages[i].message}</p>
-    </div>
-</div>
-`;
-      }
-
-      let paginationHtml = "";
-      /** @param {{page: number, total: number}} pagination */
-      const pagination = data.data.pagination;
-
-      if (Object.keys(pagination).length > 0) {
         const paginationBlock = $(".container .content .pagination-container");
-        paginationHtml = `
-<nav aria-label="paginator">
-<ul class="pagination pagination-md">
-`;
-        for (let i = 1; i <= pagination.total; i++) {
-          if (i === pagination.page) {
-            paginationHtml += `<li class="page-item active" aria-current="page">
-            <span class="page-link">${i}</span>
-            </li>`;
-            continue;
-          }
-          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${i}" onclick="renderMessagesWithPagination(this)">${i}</a></li>`;
-        }
-        paginationHtml += `</ul></nav>`;
-        paginationBlock.html(paginationHtml);
-      }
+        paginationBlock.html(data.data.pagination.html);
       messagesBlock.fadeOut({ duration: 100 });
-      messagesBlock.html(html);
+      messagesBlock.html(data.data.messages);
       messagesBlock.fadeIn({ duration: 100 });
     })
     .fail(function (data) {
@@ -390,9 +235,4 @@ function initRenderMessagesWithPagination() {
       notificationBlock.fadeIn({ duration: 100 });
       clearBlockAfterTimeout(notificationBlock);
     });
-}
-
-function generateCSRFToken() {
-  const token = document.querySelector('meta[name="csrf-token"]').content;
-  return token;
 }
