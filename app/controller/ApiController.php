@@ -21,6 +21,12 @@ class ApiController extends Controller
     /** @var int $messagesPerPage Количество сообщений на одной странице */
     private int $messagesPerPage = 10;
 
+    private array $defaultResponse = [
+        'code' => 200,
+        'error' => [],
+        'data' => []
+    ];
+
     /**
      * @return void
      */
@@ -36,17 +42,27 @@ class ApiController extends Controller
     final public function ajax(): void
     {
         if (!CsrfGenerator::check($this->request->post('_token'))) {
-            $this->response([
-                'code' => 403,
-                'error' => 'Invalid token'
-            ]);
+            $this->response(
+                $this->getResponse([
+                    'code' => 403,
+                    'error' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => 'Ошибка CSRF токена',
+                        'alertClass' => 'alert-danger'
+                    ])
+                ])
+            );
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->response([
-                'code' => 405,
-                'error' => 'Method not allowed'
-            ]);
+            $this->response(
+                $this->getResponse([
+                    'code' => 405,
+                    'error' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => 'Метод не разрешен',
+                        'alertClass' => 'alert-danger'
+                    ])
+                ])
+            );
         }
     }
 
@@ -56,121 +72,20 @@ class ApiController extends Controller
      */
     final public function ajax_save(): void
     {
-        $userName = Tools::secureText(trim($this->request->post('name')));
-        $message = Tools::secureText(trim($this->request->post('user_text')));
+        $values = $this->validateFieldWithError();
 
-        if (empty($userName) || empty($message)) {
-            $this->response([
-                'code' => 400,
-                'error' => [
-                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
-                        'message' => trim(
-                            'Не заполнены обязательные поля: '
-                            . (empty($userName) ? 'Имя ' : '')
-                            . (empty($message) ? 'Отзыв' : '')
-                        )
-                    ])
-                ]
-            ]);
-        }
+        $saved = Messages::saveNew($values);
 
-        if (mb_strlen($userName) < self::MIN_NAME_LENGTH || mb_strlen($userName) > self::MAX_NAME_LENGTH) {
-            $this->response([
-                'code' => 400,
-                'error' => [
-                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
-                        'message' => 'Неверная длина имени'
-                    ])
-                ]
-            ]);
-        }
-
-        if (mb_strlen($message) < self::MIN_MESSAGE_LENGTH || mb_strlen($message) > self::MAX_MESSAGE_LENGTH) {
-            $this->response([
-                'code' => 200,
-                'error' => [
-                    'html' => Tools::get_include_contents(tpl('tpl/notice'), [
-                        'message' => 'Неверная длина сообщения'
-                    ])
-                ]
-            ]);
-        }
-
-        $entity = M('messages')->factory()
-            ->setValue(
-                'user_name',
-                Tools::secureText(trim($this->request->post('name')))
-            )
-            ->setValue(
-                'message',
-                Tools::secureText(trim($this->request->post('user_text')))
-            );
-
-        $result = $entity->save();
-
-        $data = [
-            'saved' => (bool)$result,
-            'html' => Tools::get_include_contents(tpl('tpl/notice'), [
-                'message' => $result ? 'Сообщение успешно сохранено' : 'Ошибка сохранения сообщения'
-            ])
-        ];
-
-        $response = [
-            'code' => 200,
-            'error' => '',
-            'data' => $data
-        ];
-
-        $this->v += $response;
-    }
-
-    /**
-     * Получение сообщений
-     * @return void
-     */
-    final public function ajax_getMessages(): void
-    {
-        $response = [
-            'code' => 200,
-            'error' => '',
+        $this->v += $this->getResponse([
             'data' => [
-                'messages' => [],
-                'pagination' => [
-                    'page' => 1,
-                    'total' => 1,
-                ]
-            ]
-        ];
-
-        $cache = new Cache();
-        $messages = $cache->get('messages');
-        if ($messages) {
-            $response['data']['messages'] = $messages;
-            $this->v += $response;
-            return;
-        }
-
-        $entity = M('messages')->factory();
-        $messages = $entity->get()->orderBy('cdate', 'DESC')->fetchAll();
-
-        if (!$messages) {
-            $this->v += $response;
-            return;
-        }
-
-        $messages = array_map(static function ($message) {
-            return [
-                'id' => $message->id,
-                'user_name' => $message->user_name,
-                'message' => $message->message,
-                'date' => $message->cdate
-            ];
-        }, $messages);
-
-        $cache->set('messages', $messages, 60);
-        $response['data']['messages'] = $messages;
-
-        $this->v += $response;
+                'saved' => $saved,
+                'html' => Tools::get_include_contents(tpl('tpl/notice'), [
+                    'message' => $saved ? 'Сообщение успешно сохранено' : 'Ошибка сохранения сообщения',
+                    'alertClass' => $saved ? 'alert-success' : 'alert-danger'
+                ])
+            ],
+            'error' => $saved ? [] : ['message' => 'Ошибка сохранения сообщения']
+        ]);
     }
 
     /**
@@ -191,23 +106,24 @@ class ApiController extends Controller
         $sequence = $cache->get('sequence');
         if ($sequence) {
             $response['data']['sequence'] = $sequence;
-            $this->v = array_merge($this->v, $response);
+            $this->v += $this->getResponse($response);
             return;
         }
 
-        $entity = M('messages')->factory();
-        $sequence = $entity->get()->orderBy('id', 'DESC')->limit(1)->fetch();
+        $sequence = Messages::getSequence();
 
         if (!$sequence) {
-            $this->v = array_merge($this->v, $response);
+            $this->v += $this->getResponse($response);
             return;
         }
 
-        $cache->set('sequence', $sequence->id, 60);
+        $cache->set('sequence', $sequence, 60);
 
-        $response['data']['sequence'] = $sequence->id;
-        $response['data']['html'] = Tools::get_include_contents(tpl('tpl/toast'));
-        $this->v = array_merge($this->v, $response);
+        $response['data'] = [
+            'sequence' => $sequence,
+            'html' => Tools::get_include_contents(tpl('tpl/toast'))
+        ];
+        $this->v += $this->getResponse($response);
     }
 
     /**
@@ -219,6 +135,8 @@ class ApiController extends Controller
         $page = $this->request->post('page');
         if (!$page || !is_numeric($page)) {
             $page = 1;
+        } else {
+            $page = (int)$page;
         }
 
         $response = [
@@ -237,23 +155,23 @@ class ApiController extends Controller
         $totalPages = $cache->get('totalPages');
         $messagesOnPage = $cache->get('messages_page_' . $page);
 
+        $messageEntity = new Messages();
+
         if (!$totalPages) {
-            $entity = M('messages')->factory();
-            $totalMessages = $entity->get()->count();
+            $totalMessages = $messageEntity->getTotal();
             $totalPages = (int)ceil($totalMessages / $this->messagesPerPage);
             $cache->set('totalPages', $totalPages, 120);
         }
 
         if (!$messagesOnPage) {
-            $entity = M('messages')->factory();
-            $messagesOnPage = $entity->get()->orderBy('cdate', 'DESC')->limit($this->messagesPerPage)->offset(($page - 1) * $this->messagesPerPage)->fetchAll();
+            $messagesOnPage = $messageEntity->getMessagesWithPagination((int)$page, $this->messagesPerPage);
             if (count($messagesOnPage) > 0) {
                 $cache->set('messages_page_' . $page, $messagesOnPage, 120);
             }
         }
 
         if (!$messagesOnPage) {
-            $this->v += $response;
+            $this->v += $this->getResponse($response);
             return;
         }
 
@@ -271,8 +189,8 @@ class ApiController extends Controller
         ]);
 
         $paginationTpl = Tools::get_include_contents(tpl('tpl/pagination'), [
-            'currentPage' => (int)$page,
-            'totalPages' => (int)$totalPages
+            'currentPage' => $page,
+            'totalPages' => $totalPages
         ]);
         $response['data']['messages'] = $messagesTpl;
         $response['data']['pagination'] = [
@@ -280,7 +198,7 @@ class ApiController extends Controller
             'total' => $totalPages,
             'html' => $paginationTpl
         ];
-        $this->v += $response;
+        $this->v += $this->getResponse($response);
     }
 
     /**
@@ -296,5 +214,55 @@ class ApiController extends Controller
                 'test' => 'test'
             ]
         ]);
+    }
+
+    private function getResponse(array $response): array
+    {
+        return array_merge($this->defaultResponse, $response);
+    }
+
+    /**
+     * @return array
+     */
+    private function validateFieldWithError(): array
+    {
+        $fields = [
+            'user_name' => [
+                'min' => self::MIN_NAME_LENGTH,
+                'max' => self::MAX_NAME_LENGTH
+            ],
+            'message' => [
+                'min' => self::MIN_MESSAGE_LENGTH,
+                'max' => self::MAX_MESSAGE_LENGTH
+            ]
+        ];
+
+        $values = [];
+        $errors = [];
+
+        foreach ($fields as $field => $length) {
+            $value = Tools::secureText(trim($this->request->post($field)));
+            $values[$field] = $value;
+            if (empty($value)) {
+                $errors[] = "Не заполнено обязательное поле: $field";
+                continue;
+            }
+            if (mb_strlen($value) < $length['min'] || mb_strlen($value) > $length['max']) {
+                $errors[] = "Неверная длина поля $field. Допустимая длина от {$length['min']} до {$length['max']} символов";
+            }
+        }
+
+        if (!empty($errors)) {
+            $this->response(
+                $this->getResponse([
+                    'code' => 400,
+                    'error' => Tools::get_include_contents(tpl('tpl/notice'), [
+                        'message' => implode('<br>', $errors),
+                        'alertClass' => 'alert-warning'
+                    ])
+                ])
+            );
+        }
+        return $values;
     }
 }
