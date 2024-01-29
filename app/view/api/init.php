@@ -26,13 +26,13 @@
         <div class="col-4">
             <form>
                 <div class="mb-3">
-                    <label for="name" class="form-label">Имя</label>
-                    <input type="text" class="form-control" id="name" aria-describedby="nameHelp" minlength="2" maxlength="128" required>
+                    <label for="user_name" class="form-label">Имя</label>
+                    <input type="text" class="form-control" id="user_name" aria-describedby="nameHelp" minlength="2" maxlength="128" required>
                     <div id="nameHelp" class="form-text">Представьтесь</div>
                 </div>
                 <div class="mb-3">
-                    <label for="user_text" class="form-label">Отзыв</label>
-                    <textarea class="form-control" id="user_text" rows="3" minlength="2" maxlength="2056" required></textarea>
+                    <label for="message" class="form-label">Отзыв</label>
+                    <textarea class="form-control" id="message" rows="3" minlength="2" maxlength="2056" required></textarea>
                 </div>
                 <div class="d-grid">
                     <button type="button" class="btn btn-primary mb-3" id="message_send">Отправить</button>

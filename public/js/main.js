@@ -30,6 +30,11 @@ const objDef = {
  * @type {number}
  */
 let globalLastSequence = 0;
+/**
+ * Время анимации по умолчанию
+ * @type {number}
+ */
+const durationDefault = 100;
 
 /**
  * Обработчик кнопки отправки сообщения
@@ -71,26 +76,28 @@ function handlerSendButton(event) {
         return;
     }
 
-    ajaxObject.data[jObj.prop("id")] = jObj.val();
+    ajaxObject.data[fieldName] = jObj.val();
   });
 
     $.ajax(ajaxObject)
       .done(function (data) {
         const notificationBlock = $(".container .notification");
-        notificationBlock.fadeOut({ duration: 100 });
+        notificationBlock.fadeOut({ duration: durationDefault });
         notificationBlock.html("");
-        if (data.error !== "") {
+        if (data.error.length > 0) {
           notificationBlock.html(data.error.html);
-          notificationBlock.fadeIn({ duration: 100 });
+          notificationBlock.fadeIn({ duration: durationDefault });
           clearBlockAfterTimeout(notificationBlock);
           return;
         }
 
         notificationBlock.html(data.data.html);
-        notificationBlock.fadeIn({ duration: 100 });
+        notificationBlock.fadeIn({ duration: durationDefault });
         clearBlockAfterTimeout(notificationBlock);
+
+        initRenderMessagesWithPagination();
       })
-      .error(function (data) {
+      .fail(function (data) {
         console.warn(data);
       });
 }
@@ -101,7 +108,7 @@ function handlerSendButton(event) {
  * @param {number} timeout
  * @param {number} durationTime
  */
-function clearBlockAfterTimeout(block, timeout = 5000, durationTime = 100) {
+function clearBlockAfterTimeout(block, timeout = 5000, durationTime = durationDefault) {
   setTimeout(() => {
     block.fadeOut({ duration: durationTime });
   }, timeout);
@@ -118,7 +125,7 @@ function getSequence() {
   $.ajax(ajaxObject)
     /** @param {{error: string, data: {sequence: number}}} data */
     .done(function (data) {
-      if (data.error !== "") {
+      if (data.error.length > 0) {
         return;
       }
       if (
@@ -128,35 +135,13 @@ function getSequence() {
         globalLastSequence = data.data.sequence;
         const toastContainer = $(".toast-container");
         toastContainer.html(data.data.html);
-        $(".toast").show(100);
+        $(".toast").show(durationDefault);
         clearBlockAfterTimeout(toastContainer, 3000, 1000);
       }
     })
     .fail(function (data) {
       console.warn(data);
     });
-}
-
-/**
- * Отрисовка всплывающего сообщения
- */
-function renderToast() {
-  const toastContainer = $(".toast-container");
-  const html = `
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-<div class="toast align-items-center text-white bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
-  <div class="d-flex">
-    <div class="toast-body">
-        Появились новые сообщения
-    </div>
-    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-  </div>
-</div>
-</div>
-`;
-  toastContainer.html(html);
-  $(".toast").show(100);
-  clearBlockAfterTimeout(toastContainer, 3000, 1000);
 }
 
 /**
@@ -173,12 +158,12 @@ function renderMessagesWithPagination(element) {
     /** @param {{error: string, data: {messages: string, pagination: {page: number, total: number, html: string}}}} data */
     .done(function (data) {
       const notificationBlock = $(".container .content .notification");
-      notificationBlock.fadeOut({ duration: 100 });
+      notificationBlock.fadeOut({ duration: durationDefault });
       notificationBlock.html("");
-      if (data.error !== "") {
+      if (data.error.length > 0) {
         let html = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
         notificationBlock.html(html);
-        notificationBlock.fadeIn({ duration: 100 });
+        notificationBlock.fadeIn({ duration: durationDefault });
         clearBlockAfterTimeout(notificationBlock);
         return;
       }
@@ -195,7 +180,7 @@ function renderMessagesWithPagination(element) {
       const notificationBlock = $(".container .notification");
       let html = `<div class="alert alert-warning" role="alert">${data.message}</div>`;
       notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
+      notificationBlock.fadeIn({ duration: durationDefault });
       clearBlockAfterTimeout(notificationBlock);
     });
 }
@@ -212,27 +197,27 @@ function initRenderMessagesWithPagination() {
     /** @param {{error: string, data: {messages: [], pagination: {page: number, total: number}}}} data */
     .done(function (data) {
       const messagesBlock = $(".container .content .messages");
-      messagesBlock.fadeOut({ duration: 100 });
+      messagesBlock.fadeOut({ duration: durationDefault });
       messagesBlock.html("");
-      if (data.error !== "") {
+      if (data.error.length > 0) {
         let html = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
         messagesBlock.html(html);
-        messagesBlock.fadeIn({ duration: 100 });
+        messagesBlock.fadeIn({ duration: durationDefault });
         clearBlockAfterTimeout(messagesBlock);
         return;
       }
 
         const paginationBlock = $(".container .content .pagination-container");
         paginationBlock.html(data.data.pagination.html);
-      messagesBlock.fadeOut({ duration: 100 });
+      messagesBlock.fadeOut({ duration: durationDefault });
       messagesBlock.html(data.data.messages);
-      messagesBlock.fadeIn({ duration: 100 });
+      messagesBlock.fadeIn({ duration: durationDefault });
     })
     .fail(function (data) {
       const notificationBlock = $(".container .notification");
       let html = `<div class="alert alert-warning" role="alert">${data.message}</div>`;
       notificationBlock.html(html);
-      notificationBlock.fadeIn({ duration: 100 });
+      notificationBlock.fadeIn({ duration: durationDefault });
       clearBlockAfterTimeout(notificationBlock);
     });
 }
